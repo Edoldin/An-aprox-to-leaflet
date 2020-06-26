@@ -1,0 +1,61 @@
+<html>
+    <head>
+        <style>
+            #mapid { height: 100%; border:0;padding: 0; }
+        </style>
+
+
+    </head>
+    <!--https://leafletjs.com/examples/wms/wms.html
+    http://wms-map.sourceforge.net/
+    https://leafletjs.com/reference-1.6.0.html#latlngbounds>-->
+    <body>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
+        integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+        crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
+        integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+        crossorigin=""></script>
+        <div id="mapid"></div>
+        <script>
+            var mymap = L.map('mapid',{renderer:L.canvas()})
+            //mymap.setView([51.505, -0.09], 13);
+
+            mymap.fitBounds([
+                [40.712, -74.227],
+                [40.774, -74.125]
+            ]);
+
+            /*var wmsLayer = L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
+                layers: 'TOPO-OSM-WMS'
+            }).addTo(mymap);*/
+            /*var wmsLayer = L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
+                layers: 'SRTM30-Colored-Hillshade'
+            }).addTo(mymap);
+            */
+
+            var basemaps = {
+                Places: L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
+                    layers: 'OSM-Overlay-WMS'
+                }),
+
+                Topography: L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
+                    layers: 'TOPO-WMS'
+                }),
+
+                'Topography, then places': L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
+                    layers: 'TOPO-WMS,OSM-Overlay-WMS'
+                }),
+
+                'Places, then topography': L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
+                    layers: 'OSM-Overlay-WMS,TOPO-WMS'
+                })
+            };
+
+            L.control.layers(basemaps).addTo(mymap);
+
+            basemaps.Places.addTo(mymap);
+        </script>
+    </body>
+</html>
+

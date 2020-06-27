@@ -1,0 +1,23 @@
+{
+  "name": "an-aprox-to-leaflet",
+  "version": "1.0.0",
+  "description": "",
+  "main": "nodeNcdfRead.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Edoldin/An-aprox-to-leaflet.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Edoldin/An-aprox-to-leaflet/issues"
+  },
+  "homepage": "https://github.com/Edoldin/An-aprox-to-leaflet#readme",
+  "dependencies": {
+    "netcdfjs": "^1.0.0"
+  }
+}

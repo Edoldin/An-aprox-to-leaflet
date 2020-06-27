@@ -18,13 +18,36 @@
         crossorigin=""></script>
         <div id="mapid"></div>
         <script>
-            var mymap = L.map('mapid',{renderer:L.canvas()})
-            //mymap.setView([51.505, -0.09], 13);
+            function getNcdf(urlpath,cb){
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', urlpath, true);
+                xhr.onreadystatechange = function() {
+                    if (this.readyState == XMLHttpRequest.DONE) {
+                        cb(xhr.responseText);
+                    }
+                };
+                xhr.send(); //start process
+            }
+            getNcdf('192.168.68.111:5001/netcdf/medicion.nc',(resp)=>{
+                var reader=JSON.parse(resp)
+                console.log(reader); // go to offset and read it
+            })
+            getNcdf('192.168.68.111:5001/netcdf/medicion.nc/uo',(resp)=>{
+                var content=JSON.parse(resp)
+                console.log(content); // go to offset and read it
+            })
+            
 
-            mymap.fitBounds([
+            
+
+
+            var mymap = L.map('mapid',{renderer:L.canvas()})
+            mymap.setView([38.020, 24.020], 15);
+
+            /*mymap.fitBounds([
                 [40.712, -74.227],
                 [40.774, -74.125]
-            ]);
+            ]);*/
 
             /*var wmsLayer = L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
                 layers: 'TOPO-OSM-WMS'
@@ -34,6 +57,7 @@
             }).addTo(mymap);
             */
 
+            
             var basemaps = {
                 Places: L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
                     layers: 'OSM-Overlay-WMS'
@@ -49,12 +73,16 @@
 
                 'Places, then topography': L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
                     layers: 'OSM-Overlay-WMS,TOPO-WMS'
+                }),
+                'OSM topography':L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://cloudmade.com">CloudMade</a>',
+                    maxZoom: 18
                 })
             };
 
             L.control.layers(basemaps).addTo(mymap);
 
-            basemaps.Places.addTo(mymap);
+            basemaps['OSM topography'].addTo(mymap);
         </script>
     </body>
 </html>

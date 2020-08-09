@@ -18,7 +18,9 @@
         crossorigin=""></script>
         <div id="mapid"></div>
         <script>
-            
+            var mymap = L.map('mapid',{renderer:L.canvas()})
+            //mymap.setView([28.05,-15.35], 12);
+
             function getNcdf(urlpath,cb){
                 var xhr = new XMLHttpRequest();
                 xhr.open('GET', urlpath, true);
@@ -29,9 +31,12 @@
                 };
                 xhr.send(); //start process
             }
-            
-            getNcdf('192.168.68.111:5001/netcdf/finalCurrents.nc',(resp)=>{
-                const {variables,dimensions}=JSON.parse(resp).header;
+            var archivo="192.168.68.111:5001/netcdf/finalCurrents.nc"
+            getNcdf(archivo,(resp)=>{
+                const {variables,dimensions,recordDimension}=JSON.parse(resp).header;
+                if(recordDimension.name)
+                dimensions.find(d=>d.name==recordDimension.name).size=recordDimension.length;
+                console.log(JSON.parse(resp).header)
                 console.log("variables: ",variables,"\nDimensions: ",dimensions);
                 var fillValues ={};
                 var k=0;
@@ -39,8 +44,8 @@
                 variables.forEach(e => {
                     const i=e.attributes.find(element => element.name="_FillValue");
                     fillValues[e.name]=i.value||i;
-                    getNcdf('192.168.68.111:5001/netcdf/finalCurrents.nc/'+e.name,(resp)=>{
-                        content[e.name]=JSON.parse(resp).map(x=>x==fillValues[e.name]?undefined:x);
+                    getNcdf(archivo+"/"+e.name,(resp)=>{
+                        content[e.name]=JSON.parse(resp).flat(1).map(x=>x==fillValues[e.name]?undefined:x);
                         console.log(e.name+": ",content[e.name]);
                         k++
                         if(k==variables.length) step2(variables,dimensions,content);
@@ -54,6 +59,10 @@
                 realVariables=variables.filter(v=> !dimensions.find(d=> v.name==d.name));
                 console.log("variables: ",realVariables,"\nDimensions: ",dimensions);
                 const totalData=dimensions.reduce((total,e) => total*e.size, 1);
+                var bounds=[
+                    [content.latitude[0],content.longitude[0]],
+                    [content.latitude[content.latitude.length-1],content.longitude[content.longitude.length-1]]
+                ];
                 for(let k=0;k<totalData;k++){
                     var o={};
                     realVariables.forEach(e=>o[e.name]=content[e.name][k]);
@@ -61,25 +70,47 @@
                     for(p in o) if(o[p]) allUndefined=false;
                     if(!allUndefined){
                         dimensions.forEach((e,i)=>{
-                        var counter=1;
-                        for(let j=0;j<i;j++)counter*=dimensions[j].size;
-                            position=Math.floor(k/counter)
+                            var counter=1;
+                            for(let j=dimensions.length-1;j>i;j--)counter*=dimensions[j].size;
+                            position=Math.floor(k/counter)%e.size;
                             o[e.name]=content[e.name][position];
                         });
                         ContenidoFinal.push(o);
                     }
                 }
                 console.log(ContenidoFinal)
-                
+                step3(ContenidoFinal,bounds);
+            }
+            function step3(objetosAPintar,bounds){
+                //var canvasTiles = L.tileLayer.canvas();
+                //var myRenderer = L.canvas({ padding: 0.5 });
+                //aquí ya tenemos que saber cosas del modelo
+                console.log(bounds);
+                mymap.fitBounds(bounds,bounds);
+                console.log("empiezo a pintar");
+                var i=0;
+                objetosAPintar.forEach(e=>{
+                    if(Math.random()>0.98){
+
+                        console.log(i);
+                        const mod = e.u^2+e.v^2;
+                        var circleMarker = L.circle([e.latitude,e.longitude],1, {
+                            color: '#3388ff'
+                        }).addTo(mymap);
+                    }
+                })
+                console.log("Termino de pintar")
+                /*canvasTiles.drawTile = function(canvas, tilePoint, zoom) {
+                    var ctx = canvas.getContext('2d');
+                    //aquí ya tenemos que saber cosas del modelo
+                    objetosAPintar.forEach(e=>{
+                        if(e.time=249004800){
+                            L.latLngToPoint(e.latitude,e.longitude);
+                        }
+                    })
+                }*/
             }
             
-            
-
-            
-
-
-            var mymap = L.map('mapid',{renderer:L.canvas()})
-            mymap.setView([42.220, -9.0020], 13);
 
             /*mymap.fitBounds([
                 [40.712, -74.227],

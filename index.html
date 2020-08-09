@@ -18,6 +18,7 @@
         crossorigin=""></script>
         <div id="mapid"></div>
         <script>
+            
             function getNcdf(urlpath,cb){
                 var xhr = new XMLHttpRequest();
                 xhr.open('GET', urlpath, true);
@@ -28,21 +29,57 @@
                 };
                 xhr.send(); //start process
             }
-            getNcdf('192.168.68.111:5001/netcdf/medicion.nc',(resp)=>{
-                var reader=JSON.parse(resp)
-                console.log(reader); // go to offset and read it
+            
+            getNcdf('192.168.68.111:5001/netcdf/finalCurrents.nc',(resp)=>{
+                const {variables,dimensions}=JSON.parse(resp).header;
+                console.log("variables: ",variables,"\nDimensions: ",dimensions);
+                var fillValues ={};
+                var k=0;
+                var content={};
+                variables.forEach(e => {
+                    const i=e.attributes.find(element => element.name="_FillValue");
+                    fillValues[e.name]=i.value||i;
+                    getNcdf('192.168.68.111:5001/netcdf/finalCurrents.nc/'+e.name,(resp)=>{
+                        content[e.name]=JSON.parse(resp).map(x=>x==fillValues[e.name]?undefined:x);
+                        console.log(e.name+": ",content[e.name]);
+                        k++
+                        if(k==variables.length) step2(variables,dimensions,content);
+                    })
+                });
             })
-            getNcdf('192.168.68.111:5001/netcdf/medicion.nc/uo',(resp)=>{
-                var content=JSON.parse(resp)
-                console.log(content); // go to offset and read it
-            })
+            
+            function step2(variables,dimensions,content){
+                var ContenidoFinal=[]
+                console.log(dimensions)
+                realVariables=variables.filter(v=> !dimensions.find(d=> v.name==d.name));
+                console.log("variables: ",realVariables,"\nDimensions: ",dimensions);
+                const totalData=dimensions.reduce((total,e) => total*e.size, 1);
+                for(let k=0;k<totalData;k++){
+                    var o={};
+                    realVariables.forEach(e=>o[e.name]=content[e.name][k]);
+                    var allUndefined=true;
+                    for(p in o) if(o[p]) allUndefined=false;
+                    if(!allUndefined){
+                        dimensions.forEach((e,i)=>{
+                        var counter=1;
+                        for(let j=0;j<i;j++)counter*=dimensions[j].size;
+                            position=Math.floor(k/counter)
+                            o[e.name]=content[e.name][position];
+                        });
+                        ContenidoFinal.push(o);
+                    }
+                }
+                console.log(ContenidoFinal)
+                
+            }
+            
             
 
             
 
 
             var mymap = L.map('mapid',{renderer:L.canvas()})
-            mymap.setView([38.020, 24.020], 15);
+            mymap.setView([42.220, -9.0020], 13);
 
             /*mymap.fitBounds([
                 [40.712, -74.227],
@@ -59,10 +96,46 @@
 
             
             var basemaps = {
+                "googleM":L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{ subdomains:['mt0','mt1','mt2','mt3'], attribution:'Map data ©2018 Google' }),
+                "googleS":L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{ subdomains:['mt0','mt1','mt2','mt3'], attribution:'Map data ©2018 Google' }),
+                "googleH":L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{ subdomains:['mt0','mt1','mt2','mt3'], attribution:'Map data ©2018 Google' }),
+                "googleT":L.tileLayer('https://{s}.google.com/vt/lyrs=t,r&x={x}&y={y}&z={z}',{ subdomains:['mt0','mt1','mt2','mt3'], attribution:'Map data ©2018 Google' }),
+                /*
+                "googleM":{
+                    "cod":"googleM",
+                    "res":"Google Roadmap",
+                    "fun":L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{ subdomains:['mt0','mt1','mt2','mt3'], attribution:'Map data ©2018 Google' }),
+                    "estilo":{"blo":"16.4.68.pal"},
+                    "maxZoom":22
+                },
+                "googleS":{
+                    "cod":"googleS",
+                    "res":"Google Satellite",
+                    "fun":L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{ subdomains:['mt0','mt1','mt2','mt3'], attribution:'Map data ©2018 Google' }),
+                    "estilo":{"blo":"16.4.68.pal"},
+                    "maxZoom":22
+                },
+                "googleH":{
+                    "cod":"googleH",
+                    "res":"Google Hybrid",
+                    "fun":L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{ subdomains:['mt0','mt1','mt2','mt3'], attribution:'Map data ©2018 Google' }),
+                    "estilo":{"blo":"16.4.68.pal"},
+                    "maxZoom":22
+                },
+                "googleT":{
+                    "cod":"googleT",
+                    "res":"Google Terrain",
+                    "fun":L.tileLayer('https://{s}.google.com/vt/lyrs=t,r&x={x}&y={y}&z={z}',{ subdomains:['mt0','mt1','mt2','mt3'], attribution:'Map data ©2018 Google' }),
+                    "estilo":{"blo":"16.4.68.pal"},
+                    "maxZoom":22
+                },*/
                 Places: L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
                     layers: 'OSM-Overlay-WMS'
                 }),
-
+                "Puertos guille": L.tileLayer.wms("http://opendap.puertos.es/thredds/wms/circulation_coastal_vig/2019/09/VIGCST-PdE-hm-2019092700-2019092923-B2019092700-FC.nc?REQUEST=GetLegendGraphic",{
+                    layers: "salinity"
+                })
+                ,
                 Topography: L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
                     layers: 'TOPO-WMS'
                 }),
@@ -79,10 +152,12 @@
                     maxZoom: 18
                 })
             };
+            
+            googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{ maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] });
 
             L.control.layers(basemaps).addTo(mymap);
 
-            basemaps['OSM topography'].addTo(mymap);
+            basemaps['googleM'].addTo(mymap);
         </script>
     </body>
 </html>
